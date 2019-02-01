@@ -1,10 +1,9 @@
 """ Weather provider.
 """
 
-from pathlib import Path
 from bs4 import BeautifulSoup
 
-from weatherapp.core import config
+from weatherapp.sinoptik import config
 from weatherapp.core.abstract import WeatherProvider
 
 
@@ -161,7 +160,7 @@ class SinoptikProvider(WeatherProvider):
             if realfeel:
                 weather_info['feels_like'] = realfeel
             cond_info = \
-                container_tag.find(class_="weatherIco n400").attrs["title"]
+                container_tag.find(class_="weatherIco").attrs["title"]
             if cond_info:
                 weather_info['cond'] = cond_info
             wind_tag = container_tag.find(class_="weatherDetails")
