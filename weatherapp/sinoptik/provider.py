@@ -141,8 +141,7 @@ class SinoptikProvider(WeatherProvider):
 
         self.save_configuration(*city)
 
-    @staticmethod
-    def get_weather_info(page):
+    def get_weather_info(self, page):
         """ The function returns a list with the value the state of the weather.
         """
 
@@ -150,27 +149,59 @@ class SinoptikProvider(WeatherProvider):
         weather_info = {}
         soup = BeautifulSoup(page, 'html.parser')
         container_tag = soup.find(id="bd1c")
-        if container_tag:
-            today_temp = \
-                container_tag.find("p", class_="today-temp").get_text()
-            if today_temp:
-                weather_info['temp'] = today_temp
-            realfeel_info = container_tag.find(class_="temperatureSens")
-            realfeel = realfeel_info.find(class_="cur").get_text()
-            if realfeel:
-                weather_info['feels_like'] = realfeel
-            cond_info = \
-                container_tag.find(class_="weatherIco").attrs["title"]
-            if cond_info:
-                weather_info['cond'] = cond_info
-            wind_tag = container_tag.find(class_="weatherDetails")
-            lst = []
-            for info in wind_tag.find_all(class_="gray"):
-                current_info = info.find('td', attrs={'class': 'cur'})
-                tooltip_wind = current_info.find(class_="Tooltip")
-                lst.append(tooltip_wind)
-            if lst:
-                weather_info['wind'] = lst[-1].attrs['data-tooltip']
+
+        if not self.app.options.tomorrow:
+            if container_tag:
+                today_temp = \
+                    container_tag.find("p", class_="today-temp").get_text()
+                if today_temp:
+                    weather_info['temp'] = today_temp
+                realfeel_info = container_tag.find(class_="temperatureSens")
+                realfeel = realfeel_info.find(class_="cur").get_text()
+                if realfeel:
+                    weather_info['feels_like'] = realfeel
+                cond_info = \
+                    container_tag.find(class_="weatherIco").attrs["title"]
+                if cond_info:
+                    weather_info['cond'] = cond_info
+                wind_tag = container_tag.find(class_="weatherDetails")
+                lst = []
+                for info in wind_tag.find_all(class_="gray"):
+                    current_info = info.find('td', attrs={'class': 'cur'})
+                    tooltip_wind = current_info.find(class_="Tooltip")
+                    lst.append(tooltip_wind)
+                if lst:
+                    weather_info['wind'] = lst[-1].attrs['data-tooltip']
+        else:
+            container_tag = soup.find(id="bd2")
+            if container_tag:
+                tomorrow_temp_min = \
+                    container_tag.find(class_="min").get_text()
+                tomorrow_temp_max = \
+                    container_tag.find(class_="max").get_text()
+                if tomorrow_temp_min or tomorrow_temp_max:
+                    weather_info['temp'] = tomorrow_temp_min + '.. ' +\
+                        tomorrow_temp_max
+
+                cond_info = \
+                    container_tag.find(class_="weatherIco").attrs["title"]
+                if cond_info:
+                    weather_info['cond'] = cond_info
+
+                tomorrow_day_url = 'http:' + container_tag.find('a').attrs['href']
+                if tomorrow_day_url:
+                    tomorrow_day = self.get_page_source(tomorrow_day_url)
+                    tomorrow_day_page = BeautifulSoup(tomorrow_day,
+                                                      'html.parser')
+                    container_tag_wind = tomorrow_day_page.find(class_="rSide")
+                    wind_tag = container_tag_wind.find(class_="weatherDetails")
+
+                    lst = []
+                    for info in wind_tag.find_all(class_="gray"):
+                        current_info = info.find('td', attrs={'class': 'p5'})
+                        tooltip_wind = current_info.find(class_="Tooltip")
+                        lst.append(tooltip_wind)
+                    if lst:
+                        weather_info['wind'] = lst[-1].attrs['data-tooltip']
 
         return weather_info
-
